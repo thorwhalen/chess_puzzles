@@ -7,7 +7,7 @@ import { immer } from 'zustand/middleware/immer'
 import { fetchNext } from './api'
 import { checkMove, replay, solverColor, type Puzzle } from './engine'
 import { storage } from './persist'
-import { ADAPTIVE, scoreOf, START_RATING, updateRating, windowFor } from './rating'
+import { ADAPTIVE, RATING_MAX, RATING_MIN, scoreOf, START_RATING, updateRating, windowFor } from './rating'
 
 const OPPONENT_DELAY_MS = 450
 const REVEAL_STEP_MS = 800
@@ -54,6 +54,7 @@ interface State {
 }
 
 let timer: ReturnType<typeof setTimeout> | undefined
+let loadSeq = 0 // only the newest loadNext may touch the session
 const later = (fn: () => void, ms: number) => {
   clearTimeout(timer)
   timer = setTimeout(fn, ms)
@@ -131,6 +132,7 @@ export const useStore = create<State>()(
           // Skipping after a mistake or hint counts as a failed attempt; a clean skip is free.
           if (s0.puzzle && !s0.scored && s0.status !== 'loading' && (s0.mistakes > 0 || s0.hints > 0))
             score({ solved: false })
+          const mine = ++loadSeq
           set((s) => {
             s.status = 'loading'
             s.message = ''
@@ -139,11 +141,13 @@ export const useStore = create<State>()(
           const w = windowFor(band, rating)
           try {
             const puzzle = await fetchNext({ ...w, theme, exclude: recent })
+            if (mine !== loadSeq) return
             set((s) => {
               s.recent = [puzzle.id, ...s.recent].slice(0, RECENT_KEEP)
             })
             startSession(puzzle)
           } catch (e) {
+            if (mine !== loadSeq) return
             set((s) => {
               s.status = 'error'
               s.message = e instanceof Error ? e.message : 'Could not load a puzzle.'
@@ -219,6 +223,7 @@ export const useStore = create<State>()(
             s.played = s.played.slice(0, -2)
             s.hintLevel = 0
             s.selected = null
+            s.wrongSquare = null
             s.message = 'Took back your last move.'
           })
         },
@@ -226,12 +231,15 @@ export const useStore = create<State>()(
         retry: () => {
           const { puzzle } = get()
           if (!puzzle) return
-          const { scored, rating, ratingDelta } = get()
+          const { scored, ratingDelta, mistakes, hints, revealed } = get()
           startSession(puzzle)
           set((s) => {
-            s.scored = scored // a retry never scores twice
-            s.rating = rating
+            // A retry never scores twice and never erases the help already used.
+            s.scored = scored
             s.ratingDelta = ratingDelta
+            s.mistakes = mistakes
+            s.hints = hints
+            s.revealed = revealed
           })
         },
 
@@ -240,6 +248,7 @@ export const useStore = create<State>()(
           if (!puzzle || status !== 'playing') return
           set((s) => {
             s.revealed = true
+            s.wrongSquare = null
             s.status = 'busy'
             s.message = 'Solution:'
           })
@@ -273,6 +282,7 @@ export const useStore = create<State>()(
     {
       name: STORE_KEY,
       storage,
+      merge: (persisted, current) => ({ ...current, ...sanitize(persisted) }),
       partialize: (s) => ({
         rating: s.rating,
         streak: s.streak,
@@ -286,6 +296,23 @@ export const useStore = create<State>()(
     },
   ),
 )
+
+const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : d)
+
+/** Keep only well-typed fields from persisted state; a corrupt value falls back to its default. */
+function sanitize(p: unknown): Partial<State> {
+  const o = (p && typeof p === 'object' ? p : {}) as Record<string, unknown>
+  return {
+    rating: Math.min(RATING_MAX, Math.max(RATING_MIN, num(o.rating, START_RATING))),
+    streak: num(o.streak, 0),
+    bestStreak: num(o.bestStreak, 0),
+    solvedCount: num(o.solvedCount, 0),
+    attemptedCount: num(o.attemptedCount, 0),
+    recent: Array.isArray(o.recent) ? o.recent.filter((x): x is string => typeof x === 'string').slice(0, RECENT_KEEP) : [],
+    band: typeof o.band === 'string' ? o.band : ADAPTIVE,
+    theme: typeof o.theme === 'string' ? o.theme : null,
+  }
+}
 
 /** Position on the board for the current session. */
 export function currentChess(s: Pick<State, 'puzzle' | 'played'>) {

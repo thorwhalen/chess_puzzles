@@ -16,15 +16,15 @@ function MoveList() {
     const black = startsBlack ? i % 2 === 0 : i % 2 === 1
     const num = Math.floor((i + (startsBlack ? 1 : 0)) / 2) + Number(puzzle.fen.split(' ')[5] ?? 1)
     return (
-      <span key={i} className="mv">
+      <li key={i} className="mv">
         {(!black || i === 0) && <b>{num}{black ? '…' : '.'}</b>}
         {san}
-      </span>
+      </li>
     )
   })
   return (
     <ol className="moves" aria-label="Move list" data-testid="moves">
-      {items.length ? items : <span className="muted">Moves appear here.</span>}
+      {items.length ? items : <li className="muted">Moves appear here.</li>}
     </ol>
   )
 }
@@ -37,16 +37,16 @@ function Settings({ onClose }: { onClose: () => void }) {
   }, [])
   const themes = PICKER_THEMES.filter((t) => !Object.keys(counts).length || counts[t])
   return (
-    <div className="sheet" role="dialog" aria-label="Settings">
+    <div className="sheet" role="dialog" aria-modal="true" aria-label="Settings" onKeyDown={(e) => e.key === 'Escape' && onClose()}>
       <div className="sheet-head">
         <h2>Choose puzzles</h2>
-        <button className="btn" onClick={onClose} aria-label="Close">✕</button>
+        <button className="btn" autoFocus onClick={onClose} aria-label="Close">✕</button>
       </div>
       <div className="field">
         <span className="label">Difficulty</span>
         <div className="chips">
           {[{ key: ADAPTIVE, label: 'Adaptive' }, ...BANDS].map((b) => (
-            <button key={b.key} className={`chip${s.band === b.key ? ' on' : ''}`} onClick={() => s.setBand(b.key)}>
+            <button key={b.key} aria-pressed={s.band === b.key} className={`chip${s.band === b.key ? ' on' : ''}`} onClick={() => s.setBand(b.key)}>
               {b.label}
             </button>
           ))}
@@ -96,14 +96,14 @@ export default function App() {
         </div>
       </header>
 
-      <div className="turn" aria-live="polite">
+      <div className="turn">
         {turn && <span className={`dot ${turn}`} />}
         {turn ? `${turn === 'white' ? 'White' : 'Black'} to move` : 'Loading…'}
         {s.theme && <span className="tag">{themeLabel(s.theme)}</span>}
         {done && puzzle && <span className="muted"> · puzzle {puzzle.rating}</span>}
       </div>
 
-      <Board />
+      <section aria-label="Chessboard"><Board /></section>
 
       <p className={`msg${s.status === 'error' ? ' err' : ''}`} role="status" aria-live="polite" data-testid="msg">
         {s.status === 'loading' ? 'Loading puzzle…' : s.message}
@@ -112,6 +112,12 @@ export default function App() {
         <div className="chips" data-testid="themes">
           {puzzle.themes.map((t) => <span key={t} className="tag">{themeLabel(t)}</span>)}
         </div>
+      )}
+
+      {s.status === 'error' && (s.theme || s.band !== ADAPTIVE) && (
+        <button className="btn" onClick={() => { s.setTheme(null); if (s.band !== ADAPTIVE) s.setBand(ADAPTIVE) }}>
+          Clear filters
+        </button>
       )}
 
       <div className="actions">

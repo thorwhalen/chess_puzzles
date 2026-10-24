@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
@@ -46,9 +47,8 @@ def _to_dict(row: sqlite3.Row) -> dict:
     }
 
 
-@app.get("/meta")
-def meta() -> dict:
-    """Rating range and the available themes with counts."""
+@lru_cache(maxsize=4)
+def _meta_for(db_mtime: float) -> dict:  # keyed on the file's mtime: rebuilt only when the DB changes
     with _connect() as con:
         lo, hi, n = con.execute("SELECT MIN(rating), MAX(rating), COUNT(*) FROM puzzle").fetchone()
         counts: dict[str, int] = {}
@@ -58,15 +58,24 @@ def meta() -> dict:
     return {"min_rating": lo, "max_rating": hi, "count": n, "themes": counts}
 
 
+@app.get("/meta")
+def meta() -> dict:
+    """Rating range and the available themes with counts."""
+    path = data_root() / "puzzles" / DB_NAME
+    if not path.exists():
+        raise HTTPException(503, "Puzzle database not provisioned on this server.")
+    return _meta_for(path.stat().st_mtime)
+
+
 @app.get("/next")
 def next_puzzle(
     min_rating: int = Query(0, ge=0, le=4000),
     max_rating: int = Query(4000, ge=0, le=4000),
     theme: str | None = Query(None, pattern=r"^[A-Za-z0-9]+$"),
-    exclude: str = "",
+    exclude: str = Query("", max_length=MAX_EXCLUDE * 12),
 ) -> dict:
     """A random puzzle in the rating band (and theme), skipping recently seen ids."""
-    ids = [i for i in exclude.split(",") if i.isalnum()][:MAX_EXCLUDE]
+    ids = [i for i in exclude.split(",", MAX_EXCLUDE) if i.isascii() and i.isalnum()]
     sql = "SELECT * FROM puzzle WHERE rating BETWEEN ? AND ?"
     args: list = [min_rating, max_rating]
     if theme:
