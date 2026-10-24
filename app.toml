@@ -1,0 +1,17 @@
+# Public: the app holds no private data. Puzzles are CC0 (Lichess); the only per-user state
+# (rating, streak) lives in the visitor's own browser, so there is nothing to protect.
+access = "public"
+display_name = "Chess Puzzles"
+description = "Beginner and low-intermediate chess tactics, phone-friendly. Hints, themes, rating and streak."
+frontend_dir = "frontend"
+
+# Build step honoured by tw_platform/deploy.py, which injects VITE_PUBLIC_BASE="/chess_puzzles/".
+[build]
+install  = ["npm", "ci", "--no-audit", "--no-fund", "--no-progress"]
+build    = ["npm", "run", "build"]
+env_vars = ["VITE_PUBLIC_BASE"]
+
+[deploy]
+# The server needs only server.py, frontend/ and this file. The puzzle DATA is not shipped
+# with the code: it lives in ~/.local/share/chess_puzzles/puzzles/ (see README).
+exclude = ["src", "scripts", "tests", "docs", "node_modules", ".github", "public"]
