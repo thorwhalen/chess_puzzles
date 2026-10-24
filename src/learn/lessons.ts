@@ -87,7 +87,7 @@ export const LESSONS: Lesson[] = [
   {
     key: 'fork',
     blurb: 'One piece attacks two targets at once.',
-    summary: 'A fork is a single move that attacks two or more enemy pieces. The opponent can save only one, so you win the other. Knights are the classic forkers because their jump can not be blocked and the attacked piece can not attack back, but queens, pawns and bishops fork too.',
+    summary: 'A fork is a single move that attacks two or more enemy pieces. The opponent can save only one, so you win the other. Knights are the classic forkers because their jump can not be blocked and the forked piece can usually not hit back, but queens, pawns and bishops fork too.',
     spot: [
       'Look for two enemy pieces that are the same knight-jump from one square.',
       'A fork with check is the strongest: the king must move, and you take the other piece.',
@@ -260,12 +260,13 @@ export const LESSONS: Lesson[] = [
     ],
     diagrams: [
       {
-        fen: '8/4rk2/3K4/8/8/8/7R/8 w - - 1 55',
-        caption: 'The rook on e7 is guarded only by its king. Rh7+ is check, so the king has to step away from that duty (Kg6), and Rxe7 wins the rook.',
-        arrows: [['h2', 'h7', 'move'], ['h7', 'e7', 'next']],
-        marks: { f7: 'hot', e7: 'target' },
-        move: 'h2h7',
-        claim: 'check',
+        fen: '8/8/5p2/5kp1/8/1R4PK/3r3P/8 b - - 5 42',
+        orientation: 'black',
+        caption: 'g4+! The white king can not take the pawn (the black king guards it), so it must go to h4. That pulls it away from h2, and Rxh2 is checkmate.',
+        arrows: [['g5', 'g4', 'move'], ['d2', 'h2', 'next']],
+        marks: { h3: 'hot', h2: 'target' },
+        move: 'g5g4',
+        claim: 'mate2',
       },
     ],
   },
@@ -340,10 +341,10 @@ export const LESSONS: Lesson[] = [
     ],
     diagrams: [
       {
-        fen: '6k1/8/1n6/P2b4/8/8/8/3RK3 w - - 0 1',
-        caption: 'The bishop looks safe: the knight on b6 guards it. But the a-pawn can take that knight, axb6. Now the bishop has no guard and the rook attacks it.',
-        arrows: [['a5', 'b6', 'move'], ['d1', 'd5', 'next'], ['b6', 'd5', 'threat']],
-        marks: { b6: 'target', d5: 'target' },
+        fen: '3k4/8/1n6/P2b4/8/8/8/3RK3 w - - 0 1',
+        caption: 'The bishop is pinned to the king by the rook, and only the knight on b6 guards it. axb6 takes the guard. The pinned bishop can not move, and Rxd5+ wins it next.',
+        arrows: [['a5', 'b6', 'move'], ['d1', 'd5', 'next']],
+        marks: { b6: 'target', d5: 'target', d8: 'hot' },
         move: 'a5b6',
       },
     ],
@@ -420,7 +421,7 @@ export const LESSONS: Lesson[] = [
       {
         fen: '8/6k1/8/P7/8/8/8/R3K3 w - - 0 1',
         caption: 'A rook belongs behind a passed pawn. From a1 it guards the a-pawn all the way to a8, and it can never be blocked by the pawn itself.',
-        arrows: [['a1', 'a5', 'move'], ['a5', 'a8', 'next']],
+        arrows: [['a1', 'a4', 'threat'], ['a5', 'a8', 'next']],
         marks: { a8: 'target' },
       },
     ],

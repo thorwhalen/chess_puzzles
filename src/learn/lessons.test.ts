@@ -56,9 +56,14 @@ describe('lessons', () => {
     l.diagrams.forEach((d, i) => {
       it(`${l.key} #${i}: legal position, true claim`, { timeout: 60_000 }, () => {
         const chess = new Chess(d.fen)
-        for (const [from, to] of d.arrows ?? []) {
+        for (const [from, to, kind] of d.arrows ?? []) {
           expect(from + to).toMatch(/^[a-h][1-8][a-h][1-8]$/)
+          // A 'move' arrow is the key move: it must be legal for the side to move.
+          if (kind === undefined || kind === 'move') {
+            expect(chess.moves({ verbose: true }).map((m) => m.from + m.to), `arrow ${from}${to}`).toContain(from + to)
+          }
         }
+        for (const sq of Object.keys(d.marks ?? {})) expect(sq).toMatch(/^[a-h][1-8]$/)
         if (d.move) {
           const legal = chess.moves({ verbose: true }).map(uci)
           expect(legal, `${d.move} is legal`).toContain(d.move)

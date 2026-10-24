@@ -20,6 +20,7 @@ from fastapi import FastAPI, HTTPException, Query
 DATA_ENV_VAR = "CHESS_PUZZLES_DATA_DIR"
 DB_NAME = "puzzles.sqlite"
 MAX_EXCLUDE = 300  # recent ids the client may ask us to skip
+FALLBACK_MAX_DISTANCE = 500  # rating points a themed fallback may stray from the requested band
 
 app = FastAPI(title="Chess Puzzles")
 
@@ -90,13 +91,16 @@ def next_puzzle(
         if row is None and ids:  # everything in the band was seen: allow repeats
             row = con.execute(sql.split(" AND id NOT IN")[0] + " ORDER BY RANDOM() LIMIT 1",
                               args[: len(args) - len(ids)]).fetchone()
-    if row is None and theme:  # nothing of that theme in the band: the nearest one by rating
+    if row is None and theme:  # nothing of that theme in the band: the nearest in rating, not too far off
         mid = (min_rating + max_rating) / 2
+        base = "SELECT * FROM puzzle WHERE (' ' || themes || ' ') LIKE ? AND ABS(rating - ?) <= ?"
+        order = " ORDER BY ABS(rating - ?), RANDOM() LIMIT 1"
+        args = [f"% {theme} %", mid, FALLBACK_MAX_DISTANCE]
         with _connect() as con:
-            row = con.execute(
-                "SELECT * FROM puzzle WHERE (' ' || themes || ' ') LIKE ? ORDER BY ABS(rating - ?), RANDOM() LIMIT 1",
-                (f"% {theme} %", mid),
-            ).fetchone()
+            if ids:
+                row = con.execute(base + f" AND id NOT IN ({','.join('?' * len(ids))})" + order, [*args, *ids, mid]).fetchone()
+            if row is None:  # all seen: allow a repeat rather than nothing
+                row = con.execute(base + order, [*args, mid]).fetchone()
     if row is None:
         raise HTTPException(404, "No puzzle matches these filters.")
     return _to_dict(row)

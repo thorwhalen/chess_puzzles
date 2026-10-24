@@ -35,24 +35,22 @@
  },
  "mateIn3": {
   "theme": "mateIn3",
-  "id": "IXqrY",
-  "fen": "2r2rk1/p4q1p/b1n1R1p1/PN1Q4/1P6/2P5/5PPP/R5K1 w - - 1 25",
+  "id": "dDjhT",
+  "fen": "5rk1/1Q6/2p3Bp/3r4/8/2b4P/6P1/1R3q1K w - - 2 33",
   "moves": [
-   "b5d6",
-   "f7f2",
-   "g1h1",
-   "f2f1",
-   "a1f1",
-   "f8f1"
+   "b1f1",
+   "f8f1",
+   "h1h2",
+   "c3e5",
+   "g2g3",
+   "d5d2"
   ],
-  "rating": 828,
+  "rating": 940,
   "themes": [
-   "backRankMate",
+   "endgame",
    "long",
    "mate",
-   "mateIn3",
-   "middlegame",
-   "sacrifice"
+   "mateIn3"
   ]
  },
  "fork": {
@@ -75,20 +73,19 @@
  },
  "pin": {
   "theme": "pin",
-  "id": "hUAUF",
-  "fen": "r5k1/pp3ppp/4b3/4P3/1r3P2/3B1NPq/nPP1Q2P/1K1R3R w - - 2 21",
+  "id": "4msxG",
+  "fen": "4q1k1/1Q3pp1/2p4p/3p4/1P6/2r3P1/5P1P/R5K1 b - - 1 30",
   "moves": [
-   "f3g5",
-   "a2c3",
-   "b1c1",
-   "c3e2"
+   "c3b3",
+   "a1a8",
+   "e8a8",
+   "b7a8"
   ],
-  "rating": 973,
+  "rating": 833,
   "themes": [
-   "crushing",
-   "middlegame",
+   "advantage",
+   "endgame",
    "pin",
-   "queensideAttack",
    "short"
   ]
  },
@@ -151,21 +148,20 @@
  },
  "backRankMate": {
   "theme": "backRankMate",
-  "id": "PsYcB",
-  "fen": "1k2N3/1b1Q4/p6p/1p1pP3/2p5/q1P5/2PB1rPP/2R4K w - - 0 26",
+  "id": "V7duF",
+  "fen": "2r5/pq3pk1/1p4p1/3r3p/4pQ2/1P2P3/PR3PPP/3R2K1 w - - 0 26",
   "moves": [
-   "d2e3",
-   "a3c1",
-   "e3c1",
-   "f2f1"
+   "d1d5",
+   "c8c1",
+   "d5d1",
+   "c1d1"
   ],
-  "rating": 974,
+  "rating": 867,
   "themes": [
    "backRankMate",
+   "endgame",
    "mate",
    "mateIn2",
-   "middlegame",
-   "sacrifice",
    "short"
   ]
  },
@@ -189,60 +185,58 @@
  },
  "sacrifice": {
   "theme": "sacrifice",
-  "id": "hMBSh",
-  "fen": "8/7p/4k3/2Kb1pp1/p1N5/4P1P1/5P1P/8 w - - 2 43",
+  "id": "FN92n",
+  "fen": "3r2rk/6pp/n2P1p2/p1q1R3/6QN/8/P4PPP/4R1K1 b - - 1 32",
   "moves": [
-   "c4b6",
-   "a4a3",
-   "b6d5",
-   "a3a2"
+   "f6e5",
+   "h4g6",
+   "h7g6",
+   "g4h3"
   ],
-  "rating": 866,
+  "rating": 992,
   "themes": [
-   "advancedPawn",
-   "crushing",
-   "endgame",
+   "mate",
+   "mateIn2",
+   "middlegame",
    "sacrifice",
    "short"
   ]
  },
  "deflection": {
   "theme": "deflection",
-  "id": "Ppvk0",
-  "fen": "1R6/8/3p1k2/5rp1/8/3PR3/1P4K1/7r b - - 10 45",
+  "id": "CmXlD",
+  "fen": "8/5ppk/p6p/1p1pP3/5Q2/P1PbBPPP/1P2q3/6K1 w - - 3 38",
   "moves": [
-   "h1b1",
-   "b8f8",
-   "f6g7",
-   "f8f5"
+   "e3f2",
+   "e2f1",
+   "g1h2",
+   "f1f2"
   ],
-  "rating": 971,
+  "rating": 951,
   "themes": [
    "crushing",
    "deflection",
    "endgame",
-   "rookEndgame",
-   "short",
-   "skewer"
+   "master",
+   "short"
   ]
  },
  "attraction": {
   "theme": "attraction",
-  "id": "J0SN3",
-  "fen": "5r1k/4nBpp/p2qP3/3p4/1p1Pp2R/4P1P1/4Q2K/8 b - - 1 33",
+  "id": "tzYWM",
+  "fen": "5r1k/4Rp2/4b2K/4r2P/p1p5/P7/2P5/6R1 b - - 3 41",
   "moves": [
-   "b4b3",
-   "h4h7",
-   "h8h7",
-   "e2h5"
+   "f8g8",
+   "g1g8",
+   "h8g8",
+   "e7e8"
   ],
-  "rating": 988,
+  "rating": 910,
   "themes": [
    "attraction",
    "endgame",
    "mate",
    "mateIn2",
-   "sacrifice",
    "short"
   ]
  },
@@ -342,23 +336,23 @@
  },
  "exposedKing": {
   "theme": "exposedKing",
-  "id": "cwTT1",
-  "fen": "4r1k1/p6p/1pp3p1/3p4/1P1P2P1/PrN2R2/8/5R1K w - - 1 29",
+  "id": "y8Na2",
+  "fen": "8/8/5r2/1k4p1/4R1P1/2K5/8/8 w - - 5 75",
   "moves": [
-   "c3d1",
-   "b3f3",
-   "f1f3",
-   "e8e1",
-   "h1g2",
-   "e1d1"
+   "e4c4",
+   "f6f3",
+   "c3d4",
+   "f3f4",
+   "d4d5",
+   "f4c4"
   ],
-  "rating": 931,
+  "rating": 988,
   "themes": [
    "crushing",
    "endgame",
    "exposedKing",
-   "fork",
-   "long"
+   "long",
+   "rookEndgame"
   ]
  },
  "endgame": {

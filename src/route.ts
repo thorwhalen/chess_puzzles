@@ -24,7 +24,7 @@ export function navigate(r: Route, { replace = false }: { replace?: boolean } = 
   const hash = formatRoute(r)
   if (hash === (location.hash || '#/')) return // never push the URL we are already on
   const url = location.pathname + location.search + hash
-  if (replace) history.replaceState({ app: true }, '', url)
+  if (replace) history.replaceState(history.state, '', url) // keep "came from inside the app" as it was
   else {
     history.pushState({ app: true }, '', url)
     window.scrollTo(0, 0)
