@@ -4,6 +4,9 @@ import { fetchMeta } from './api'
 import { sanList, solverColor } from './engine'
 import { BANDS, ADAPTIVE } from './rating'
 import { useStore } from './store'
+import { Confetti } from './Confetti'
+import { primeAudio } from './celebrate'
+import { Log } from './Log'
 import { Learn } from './learn/Learn'
 import { LESSONS } from './learn/lessons'
 import { navigate, useRoute } from './route'
@@ -69,8 +72,16 @@ function Settings({ onClose }: { onClose: () => void }) {
           ))}
         </select>
       </label>
+      <div className="field">
+        <span className="label">Celebration</span>
+        <label className="check"><input type="checkbox" checked={s.celebrate} onChange={(e) => s.setCelebrate(e.target.checked)} /> Confetti when you solve a puzzle</label>
+        {s.celebrate && <label className="check"><input type="checkbox" checked={s.sound} onChange={(e) => { if (e.target.checked) primeAudio(); s.setSound(e.target.checked) }} /> Play a sound too</label>}
+      </div>
       <p className="muted small">
         Solved {s.solvedCount} of {s.attemptedCount} · best streak {s.bestStreak}. Progress is saved on this device.
+      </p>
+      <p className="small">
+        <button className="linklike" onClick={() => { onClose(); navigate({ name: 'log' }) }}>Your log: how you did on each puzzle ▸</button>
       </p>
       <p className="small">
         <button className="linklike" onClick={() => { onClose(); navigate({ name: 'learn', theme: s.theme && LESSON_KEYS.has(s.theme) ? s.theme : undefined }) }}>
@@ -84,7 +95,9 @@ function Settings({ onClose }: { onClose: () => void }) {
 
 export default function App() {
   const route = useRoute()
-  return route.name === 'learn' ? <Learn theme={route.theme} /> : <Play />
+  if (route.name === 'learn') return <Learn theme={route.theme} />
+  if (route.name === 'log') return <Log />
+  return <Play />
 }
 
 function Play() {
@@ -103,10 +116,10 @@ function Play() {
       <header className="top">
         <h1>Chess Puzzles</h1>
         <div className="stats" aria-label="Your progress">
-          <span className="stat" title="Your rating">♟ {s.rating}
+          <button className="stat statlink" title="Your log" aria-label={`Your rating is ${s.rating}. Open your log`} onClick={() => navigate({ name: 'log' })}>♟ {s.rating}
             {s.ratingDelta ? <em className={s.ratingDelta > 0 ? 'up' : 'down'}> {s.ratingDelta > 0 ? '+' : ''}{s.ratingDelta}</em> : null}
-          </span>
-          <span className="stat" title="Current streak">Streak {s.streak}</span>
+          </button>
+          <span className="stat" title="Current streak" role="img" aria-label={`Streak ${s.streak}`}>★ {s.streak}</span>
           <button className="btn icon learn-link" onClick={() => navigate({ name: 'learn' })} aria-label="Theme guide">?</button>
           <button className="btn icon" onClick={() => setOpen(true)} aria-label="Difficulty and themes">⚙</button>
         </div>
@@ -119,7 +132,9 @@ function Play() {
         {done && puzzle && <span className="muted"> · puzzle {puzzle.rating}</span>}
       </div>
 
+      {s.note && <p className="note small">{s.note}</p>}
       <section aria-label="Chessboard"><Board /></section>
+      <Confetti seq={s.solveSeq} enabled={s.celebrate} sound={s.sound} />
 
       <p className={`msg${s.status === 'error' ? ' err' : ''}`} role="status" aria-live="polite" data-testid="msg">
         {s.status === 'loading' ? 'Loading puzzle…' : s.message}

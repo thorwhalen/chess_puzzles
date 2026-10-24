@@ -7,7 +7,7 @@ const puzzle = {
   rating: 554,
   themes: ['mateIn1'],
 }
-vi.mock('./api', () => ({ fetchNext: vi.fn(async () => puzzle), fetchMeta: vi.fn() }))
+vi.mock('./api', () => ({ fetchNext: vi.fn(async () => puzzle), fetchPuzzle: vi.fn(async () => puzzle), fetchMeta: vi.fn() }))
 vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => {}, removeItem: () => {} })
 
 const { useStore } = await import('./store')
@@ -51,5 +51,57 @@ describe('store', () => {
     release()
     await first
     expect(useStore.getState().puzzle?.id).toBe('aBRlI')
+  })
+})
+
+describe('history in the store', () => {
+  beforeEach(() => useStore.setState({ rating: 800, streak: 0, scored: false, puzzle: null, recent: [], history: [], solveSeq: 0 }))
+
+  it('records a clean solve and signals a celebration', async () => {
+    await loaded()
+    useStore.getState().playerMove('e3', 'e8')
+    const s = useStore.getState()
+    expect(s.history).toHaveLength(1)
+    expect(s.history[0]).toMatchObject({ id: 'aBRlI', outcome: 'clean', mistakes: 0, hints: 0 })
+    expect(s.solveSeq).toBe(1)
+  })
+
+  it('records mistakes and hints on a helped solve', async () => {
+    await loaded()
+    useStore.getState().playerMove('e3', 'e1') // wrong
+    useStore.getState().hint()
+    useStore.getState().playerMove('e3', 'e8')
+    expect(useStore.getState().history[0]).toMatchObject({ outcome: 'helped', mistakes: 1, hints: 1 })
+  })
+
+  it('a shown solution is a failed attempt and no celebration', async () => {
+    await loaded()
+    useStore.getState().reveal()
+    const s = useStore.getState()
+    expect(s.history[0].outcome).toBe('failed')
+    expect(s.solveSeq).toBe(0)
+  })
+})
+
+describe('retry after a failure', () => {
+  beforeEach(() => useStore.setState({ rating: 800, streak: 0, scored: false, puzzle: null, recent: [], history: [], solveSeq: 0 }))
+
+  it('a re-solve is logged as helped, without a second celebration', async () => {
+    await loaded()
+    useStore.getState().reveal()
+    vi.advanceTimersByTime(5000)
+    useStore.getState().retry()
+    vi.advanceTimersByTime(600)
+    useStore.getState().playerMove('e3', 'e8')
+    const s = useStore.getState()
+    expect(s.history.map((a) => a.outcome)).toEqual(['helped', 'failed'])
+    expect(s.solveSeq).toBe(0)
+  })
+
+  it('changing the filter does not score the open puzzle', async () => {
+    await loaded()
+    useStore.getState().playerMove('e3', 'e1') // a mistake
+    await useStore.getState().setBand('easy')
+    expect(useStore.getState().history).toHaveLength(0)
   })
 })

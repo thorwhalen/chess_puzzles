@@ -9,6 +9,7 @@ const HINT_TO = 'rgba(80, 200, 120, 0.6)'
 const LAST = 'rgba(255, 214, 10, 0.4)'
 const WRONG = 'rgba(235, 64, 52, 0.65)'
 const SELECTED = 'rgba(20, 120, 255, 0.45)'
+const RING = 'radial-gradient(circle, transparent 58%, rgba(120,120,120,0.8) 60%, rgba(120,120,120,0.8) 80%, transparent 82%)'
 const DOT = 'radial-gradient(circle, rgba(0,0,0,0.28) 22%, transparent 24%)'
 
 export function Board() {
@@ -36,7 +37,8 @@ export function Board() {
   if (s.selected) {
     styles[s.selected] = { background: SELECTED }
     for (const t of legalTargets(puzzle, played, s.selected)) {
-      styles[t] = { ...styles[t], backgroundImage: DOT }
+      // A dot would hide under the piece it captures; a grey ring around it stays visible.
+      styles[t] = { ...styles[t], backgroundImage: chess.get(t as Parameters<typeof chess.get>[0]) ? RING : DOT }
     }
   }
   if (s.wrongSquare) styles[s.wrongSquare] = { background: WRONG }

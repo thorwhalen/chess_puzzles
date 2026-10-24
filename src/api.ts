@@ -44,3 +44,7 @@ export async function fetchNext(f: Filters): Promise<Puzzle> {
 export async function fetchMeta() {
   return MetaSchema.parse(await getJson('/meta'))
 }
+
+export async function fetchPuzzle(id: string): Promise<Puzzle> {
+  return PuzzleSchema.parse(await getJson(`/puzzle/${encodeURIComponent(id)}`))
+}

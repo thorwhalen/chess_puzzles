@@ -4,8 +4,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
-import { fetchNext } from './api'
+import { fetchNext, fetchPuzzle } from './api'
 import { checkMove, replay, solverColor, type Puzzle } from './engine'
+import { chooseNext, excludeIds, HISTORY_KEEP, noteFor, outcomeOf, recordAttempt, type Attempt, type Choice } from './history'
 import { storage } from './persist'
 import { ADAPTIVE, RATING_MAX, RATING_MIN, scoreOf, START_RATING, updateRating, windowFor } from './rating'
 
@@ -26,6 +27,9 @@ interface State {
   recent: string[]
   band: string
   theme: string | null
+  history: Attempt[]
+  celebrate: boolean
+  sound: boolean
   // session
   puzzle: Puzzle | null
   played: string[]
@@ -40,8 +44,10 @@ interface State {
   flipped: boolean
   selected: string | null
   wrongSquare: string | null
+  note: string
+  solveSeq: number
   // actions
-  loadNext: () => Promise<void>
+  loadNext: (opts?: { scoreSkip?: boolean }) => Promise<void>
   playerMove: (from: string, to: string) => boolean
   select: (sq: string | null) => void
   hint: () => void
@@ -51,6 +57,8 @@ interface State {
   flip: () => void
   setBand: (band: string) => void
   setTheme: (theme: string | null) => void
+  setCelebrate: (on: boolean) => void
+  setSound: (on: boolean) => void
 }
 
 let timer: ReturnType<typeof setTimeout> | undefined
@@ -63,7 +71,7 @@ const later = (fn: () => void, ms: number) => {
 export const useStore = create<State>()(
   persist(
     immer((set, get) => {
-      const startSession = (puzzle: Puzzle) => {
+      const startSession = (puzzle: Puzzle, note = '') => {
         clearTimeout(timer)
         set((s) => {
           s.puzzle = puzzle
@@ -79,6 +87,7 @@ export const useStore = create<State>()(
           s.flipped = false
           s.selected = null
           s.wrongSquare = null
+          s.note = note
         })
         later(() => {
           set((s) => {
@@ -101,6 +110,10 @@ export const useStore = create<State>()(
           if (sc > 0) s.solvedCount += 1
           s.streak = sc === 1 ? s.streak + 1 : 0
           s.bestStreak = Math.max(s.bestStreak, s.streak)
+          s.history = recordAttempt(s.history, {
+            id: s.puzzle.id, rating: s.puzzle.rating, themes: s.puzzle.themes,
+            outcome: outcomeOf(sc), mistakes: s.mistakes, hints: s.hints, at: Date.now(),
+          })
         })
 
       return {
@@ -112,6 +125,9 @@ export const useStore = create<State>()(
         recent: [],
         band: ADAPTIVE,
         theme: null,
+        history: [],
+        celebrate: true,
+        sound: false,
         puzzle: null,
         played: [],
         status: 'loading',
@@ -125,27 +141,38 @@ export const useStore = create<State>()(
         flipped: false,
         selected: null,
         wrongSquare: null,
+        note: '',
+        solveSeq: 0,
 
-        loadNext: async () => {
+        loadNext: async ({ scoreSkip = true } = {}) => {
           clearTimeout(timer)
           const s0 = get()
           // Skipping after a mistake or hint counts as a failed attempt; a clean skip is free.
-          if (s0.puzzle && !s0.scored && s0.status !== 'loading' && (s0.mistakes > 0 || s0.hints > 0))
+          if (scoreSkip && s0.puzzle && !s0.scored && s0.status !== 'loading' && (s0.mistakes > 0 || s0.hints > 0))
             score({ solved: false })
           const mine = ++loadSeq
           set((s) => {
             s.status = 'loading'
             s.message = ''
           })
-          const { rating, band, theme, recent } = get()
+          const { rating, band, theme, recent, history } = get()
           const w = windowFor(band, rating)
+          const exclude = excludeIds(history, recent)
+          // With a theme chosen the player has decided; otherwise the history may steer.
+          const pick: Choice = theme ? { kind: 'fresh' } : chooseNext(history, w)
           try {
-            const puzzle = await fetchNext({ ...w, theme, exclude: recent })
+            let puzzle: Puzzle | null = null
+            if (pick.kind === 'review') puzzle = await fetchPuzzle(pick.id).catch(() => null)
+            else if (pick.kind === 'theme') puzzle = await fetchNext({ ...w, theme: pick.theme, exclude }).catch(() => null)
+            if (puzzle && pick.kind === 'theme' && !puzzle.themes.includes(pick.theme)) puzzle = null
+            const note = puzzle ? noteFor(pick) : ''
+            // Everything in the band may be solved already: drop the clean ids rather than fail.
+            puzzle ??= await fetchNext({ ...w, theme, exclude }).catch(() => fetchNext({ ...w, theme, exclude: recent }))
             if (mine !== loadSeq) return
             set((s) => {
               s.recent = [puzzle.id, ...s.recent].slice(0, RECENT_KEEP)
             })
-            startSession(puzzle)
+            startSession(puzzle, note)
           } catch (e) {
             if (mine !== loadSeq) return
             set((s) => {
@@ -183,8 +210,12 @@ export const useStore = create<State>()(
             s.wrongSquare = null
           })
           if (res.done) {
+            const fresh = !get().scored
             score({ solved: true })
             set((s) => {
+              if (fresh) s.solveSeq += 1 // a re-solve after a retry earns no second celebration
+              else if (s.puzzle && s.history.find((a) => a.id === s.puzzle!.id)?.outcome !== 'clean')
+                s.history = recordAttempt(s.history, { id: s.puzzle.id, rating: s.puzzle.rating, themes: s.puzzle.themes, outcome: 'helped', mistakes: s.mistakes, hints: s.hints, at: Date.now() })
               s.status = 'solved'
               s.message = 'Solved!'
             })
@@ -231,8 +262,8 @@ export const useStore = create<State>()(
         retry: () => {
           const { puzzle } = get()
           if (!puzzle) return
-          const { scored, ratingDelta, mistakes, hints, revealed } = get()
-          startSession(puzzle)
+          const { scored, ratingDelta, mistakes, hints, revealed, note } = get()
+          startSession(puzzle, note)
           set((s) => {
             // A retry never scores twice and never erases the help already used.
             s.scored = scored
@@ -271,11 +302,13 @@ export const useStore = create<State>()(
         flip: () => set((s) => void (s.flipped = !s.flipped)),
         setBand: (band) => {
           set((s) => void (s.band = band))
-          void get().loadNext()
+          void get().loadNext({ scoreSkip: false })
         },
+        setCelebrate: (on) => set((s) => void (s.celebrate = on)),
+        setSound: (on) => set((s) => void (s.sound = on)),
         setTheme: (theme) => {
           set((s) => void (s.theme = theme))
-          void get().loadNext()
+          void get().loadNext({ scoreSkip: false })
         },
       }
     }),
@@ -292,12 +325,25 @@ export const useStore = create<State>()(
         recent: s.recent,
         band: s.band,
         theme: s.theme,
+        history: s.history,
+        celebrate: s.celebrate,
+        sound: s.sound,
       }),
     },
   ),
 )
 
 const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : d)
+
+const isAttempt = (a: unknown): a is Attempt => {
+  const o = a as Record<string, unknown> | null
+  return (
+    !!o && typeof o.id === 'string' && Number.isFinite(o.rating) && Number.isFinite(o.at) &&
+    Number.isFinite(o.mistakes) && Number.isFinite(o.hints) &&
+    (o.outcome === 'clean' || o.outcome === 'helped' || o.outcome === 'failed') &&
+    Array.isArray(o.themes) && o.themes.every((t) => typeof t === 'string')
+  )
+}
 
 /** Keep only well-typed fields from persisted state; a corrupt value falls back to its default. */
 function sanitize(p: unknown): Partial<State> {
@@ -311,6 +357,9 @@ function sanitize(p: unknown): Partial<State> {
     recent: Array.isArray(o.recent) ? o.recent.filter((x): x is string => typeof x === 'string').slice(0, RECENT_KEEP) : [],
     band: typeof o.band === 'string' ? o.band : ADAPTIVE,
     theme: typeof o.theme === 'string' ? o.theme : null,
+    history: Array.isArray(o.history) ? o.history.filter(isAttempt).slice(0, HISTORY_KEEP) : [],
+    celebrate: typeof o.celebrate === 'boolean' ? o.celebrate : true,
+    sound: typeof o.sound === 'boolean' ? o.sound : false,
   }
 }
 
