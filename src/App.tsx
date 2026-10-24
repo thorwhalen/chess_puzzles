@@ -4,7 +4,12 @@ import { fetchMeta } from './api'
 import { sanList, solverColor } from './engine'
 import { BANDS, ADAPTIVE } from './rating'
 import { useStore } from './store'
+import { Learn } from './learn/Learn'
+import { LESSONS } from './learn/lessons'
+import { navigate, useRoute } from './route'
 import { PICKER_THEMES, themeLabel } from './themes'
+
+const LESSON_KEYS = new Set(LESSONS.map((l) => l.key))
 
 function MoveList() {
   const { puzzle, played } = useStore()
@@ -67,12 +72,22 @@ function Settings({ onClose }: { onClose: () => void }) {
       <p className="muted small">
         Solved {s.solvedCount} of {s.attemptedCount} · best streak {s.bestStreak}. Progress is saved on this device.
       </p>
+      <p className="small">
+        <button className="linklike" onClick={() => { onClose(); navigate({ name: 'learn', theme: s.theme && LESSON_KEYS.has(s.theme) ? s.theme : undefined }) }}>
+          {s.theme ? `What is ${themeLabel(s.theme)}? Open the guide ▸` : 'Theme guide: what each exercise type means ▸'}
+        </button>
+      </p>
       <button className="btn primary" onClick={onClose}>Done</button>
     </div>
   )
 }
 
 export default function App() {
+  const route = useRoute()
+  return route.name === 'learn' ? <Learn theme={route.theme} /> : <Play />
+}
+
+function Play() {
   const s = useStore()
   const [open, setOpen] = useState(false)
   useEffect(() => {
@@ -92,6 +107,7 @@ export default function App() {
             {s.ratingDelta ? <em className={s.ratingDelta > 0 ? 'up' : 'down'}> {s.ratingDelta > 0 ? '+' : ''}{s.ratingDelta}</em> : null}
           </span>
           <span className="stat" title="Current streak">Streak {s.streak}</span>
+          <button className="btn icon learn-link" onClick={() => navigate({ name: 'learn' })} aria-label="Theme guide">?</button>
           <button className="btn icon" onClick={() => setOpen(true)} aria-label="Difficulty and themes">⚙</button>
         </div>
       </header>
@@ -110,7 +126,10 @@ export default function App() {
       </p>
       {done && puzzle && (
         <div className="chips" data-testid="themes">
-          {puzzle.themes.map((t) => <span key={t} className="tag">{themeLabel(t)}</span>)}
+          {puzzle.themes.map((t) =>
+            LESSON_KEYS.has(t)
+              ? <button key={t} className="tag taglink" onClick={() => navigate({ name: 'learn', theme: t })}>{themeLabel(t)} ▸</button>
+              : <span key={t} className="tag">{themeLabel(t)}</span>)}
         </div>
       )}
 

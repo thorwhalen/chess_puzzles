@@ -43,8 +43,13 @@ def test_next_in_band_and_theme(client):
 
 
 def test_filters_that_match_nothing_404(client):
-    assert client.get("/next", params={"min_rating": 1000, "max_rating": 1500}).status_code == 404
+    assert client.get("/next", params={"min_rating": 1000, "max_rating": 1500}).status_code == 404  # no theme: no widening
     assert client.get("/next", params={"theme": "fork"}).status_code == 404
+
+
+def test_theme_falls_back_to_nearest_rating(client):
+    r = client.get("/next", params={"min_rating": 1000, "max_rating": 1500, "theme": "mateIn1"})
+    assert r.status_code == 200 and r.json()["id"] == "aaa01"
 
 
 def test_exclude_falls_back_to_repeat(client):

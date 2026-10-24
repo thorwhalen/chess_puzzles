@@ -90,6 +90,13 @@ def next_puzzle(
         if row is None and ids:  # everything in the band was seen: allow repeats
             row = con.execute(sql.split(" AND id NOT IN")[0] + " ORDER BY RANDOM() LIMIT 1",
                               args[: len(args) - len(ids)]).fetchone()
+    if row is None and theme:  # nothing of that theme in the band: the nearest one by rating
+        mid = (min_rating + max_rating) / 2
+        with _connect() as con:
+            row = con.execute(
+                "SELECT * FROM puzzle WHERE (' ' || themes || ' ') LIKE ? ORDER BY ABS(rating - ?), RANDOM() LIMIT 1",
+                (f"% {theme} %", mid),
+            ).fetchone()
     if row is None:
         raise HTTPException(404, "No puzzle matches these filters.")
     return _to_dict(row)
