@@ -1,11 +1,12 @@
 // The one module that touches browser history (tw-frontend-ux #2). Routes live in the hash,
 // so the static host needs no rewrite rules and a reload or a pasted link reproduces the view.
 //   #/            play (the puzzle screen)
+//   #/log         the player's attempt log
 //   #/learn       the theme guide;  #/learn/fork  the guide with that theme open
 // Going to another screen pushes an entry; refining the current one (opening a section) replaces.
 import { useSyncExternalStore } from 'react'
 
-export type Route = { name: 'play' } | { name: 'learn'; theme?: string }
+export type Route = { name: 'play' } | { name: 'log' } | { name: 'learn'; theme?: string }
 
 const EVENT = 'chess-route'
 const THEME_RE = /^[A-Za-z0-9]+$/
@@ -13,10 +14,12 @@ const THEME_RE = /^[A-Za-z0-9]+$/
 export function parseRoute(hash: string): Route {
   const [, head, theme] = hash.replace(/^#/, '').split('/')
   if (head === 'learn') return { name: 'learn', theme: theme && THEME_RE.test(theme) ? theme : undefined }
+  if (head === 'log') return { name: 'log' }
   return { name: 'play' }
 }
 
 export function formatRoute(r: Route): string {
+  if (r.name === 'log') return '#/log'
   return r.name === 'learn' ? `#/learn${r.theme ? `/${r.theme}` : ''}` : '#/'
 }
 

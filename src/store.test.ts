@@ -7,7 +7,7 @@ const puzzle = {
   rating: 554,
   themes: ['mateIn1'],
 }
-vi.mock('./api', () => ({ fetchNext: vi.fn(async () => puzzle), fetchMeta: vi.fn() }))
+vi.mock('./api', () => ({ fetchNext: vi.fn(async () => puzzle), fetchPuzzle: vi.fn(async () => puzzle), fetchMeta: vi.fn() }))
 vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => {}, removeItem: () => {} })
 
 const { useStore } = await import('./store')
@@ -51,5 +51,34 @@ describe('store', () => {
     release()
     await first
     expect(useStore.getState().puzzle?.id).toBe('aBRlI')
+  })
+})
+
+describe('history in the store', () => {
+  beforeEach(() => useStore.setState({ rating: 800, streak: 0, scored: false, puzzle: null, recent: [], history: [], solveSeq: 0 }))
+
+  it('records a clean solve and signals a celebration', async () => {
+    await loaded()
+    useStore.getState().playerMove('e3', 'e8')
+    const s = useStore.getState()
+    expect(s.history).toHaveLength(1)
+    expect(s.history[0]).toMatchObject({ id: 'aBRlI', outcome: 'clean', mistakes: 0, hints: 0 })
+    expect(s.solveSeq).toBe(1)
+  })
+
+  it('records mistakes and hints on a helped solve', async () => {
+    await loaded()
+    useStore.getState().playerMove('e3', 'e1') // wrong
+    useStore.getState().hint()
+    useStore.getState().playerMove('e3', 'e8')
+    expect(useStore.getState().history[0]).toMatchObject({ outcome: 'helped', mistakes: 1, hints: 1 })
+  })
+
+  it('a shown solution is a failed attempt and no celebration', async () => {
+    await loaded()
+    useStore.getState().reveal()
+    const s = useStore.getState()
+    expect(s.history[0].outcome).toBe('failed')
+    expect(s.solveSeq).toBe(0)
   })
 })
