@@ -82,3 +82,26 @@ describe('history in the store', () => {
     expect(s.solveSeq).toBe(0)
   })
 })
+
+describe('retry after a failure', () => {
+  beforeEach(() => useStore.setState({ rating: 800, streak: 0, scored: false, puzzle: null, recent: [], history: [], solveSeq: 0 }))
+
+  it('a re-solve is logged as helped, without a second celebration', async () => {
+    await loaded()
+    useStore.getState().reveal()
+    vi.advanceTimersByTime(5000)
+    useStore.getState().retry()
+    vi.advanceTimersByTime(600)
+    useStore.getState().playerMove('e3', 'e8')
+    const s = useStore.getState()
+    expect(s.history.map((a) => a.outcome)).toEqual(['helped', 'failed'])
+    expect(s.solveSeq).toBe(0)
+  })
+
+  it('changing the filter does not score the open puzzle', async () => {
+    await loaded()
+    useStore.getState().playerMove('e3', 'e1') // a mistake
+    await useStore.getState().setBand('easy')
+    expect(useStore.getState().history).toHaveLength(0)
+  })
+})

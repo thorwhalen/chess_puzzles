@@ -5,6 +5,7 @@ import { sanList, solverColor } from './engine'
 import { BANDS, ADAPTIVE } from './rating'
 import { useStore } from './store'
 import { Confetti } from './Confetti'
+import { primeAudio } from './celebrate'
 import { Log } from './Log'
 import { Learn } from './learn/Learn'
 import { LESSONS } from './learn/lessons'
@@ -74,7 +75,7 @@ function Settings({ onClose }: { onClose: () => void }) {
       <div className="field">
         <span className="label">Celebration</span>
         <label className="check"><input type="checkbox" checked={s.celebrate} onChange={(e) => s.setCelebrate(e.target.checked)} /> Confetti when you solve a puzzle</label>
-        {s.celebrate && <label className="check"><input type="checkbox" checked={s.sound} onChange={(e) => s.setSound(e.target.checked)} /> Play a sound too</label>}
+        {s.celebrate && <label className="check"><input type="checkbox" checked={s.sound} onChange={(e) => { if (e.target.checked) primeAudio(); s.setSound(e.target.checked) }} /> Play a sound too</label>}
       </div>
       <p className="muted small">
         Solved {s.solvedCount} of {s.attemptedCount} · best streak {s.bestStreak}. Progress is saved on this device.
@@ -118,7 +119,7 @@ function Play() {
           <button className="stat statlink" title="Your log" aria-label={`Your rating is ${s.rating}. Open your log`} onClick={() => navigate({ name: 'log' })}>♟ {s.rating}
             {s.ratingDelta ? <em className={s.ratingDelta > 0 ? 'up' : 'down'}> {s.ratingDelta > 0 ? '+' : ''}{s.ratingDelta}</em> : null}
           </button>
-          <span className="stat" title="Current streak" aria-label={`Streak ${s.streak}`}>★ {s.streak}</span>
+          <span className="stat" title="Current streak" role="img" aria-label={`Streak ${s.streak}`}>★ {s.streak}</span>
           <button className="btn icon learn-link" onClick={() => navigate({ name: 'learn' })} aria-label="Theme guide">?</button>
           <button className="btn icon" onClick={() => setOpen(true)} aria-label="Difficulty and themes">⚙</button>
         </div>

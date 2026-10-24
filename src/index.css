@@ -89,7 +89,7 @@ figcaption { margin-top: 6px; font-size: .9rem; }
 .linklike.inline { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 8px 0 0; }
 
 /* solve celebration */
-.confetti { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 20; }
+.confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20; }
 .check { display: flex; align-items: center; gap: 10px; min-height: var(--tap); }
 .check input { width: 22px; height: 22px; accent-color: var(--accent); }
 
@@ -99,7 +99,7 @@ figcaption { margin-top: 6px; font-size: .9rem; }
 .bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--line); margin: 12px 0 4px; }
 .bar i { display: block; flex-basis: 0; }
 .bar .clean, .logrow.clean .logicon { background: var(--up); }
-.bar .helped, .logrow.helped .logicon { background: #d9a400; }
+.bar .helped, .logrow.helped .logicon { background: #d9a400; color: #1d1d1b; }
 .bar .failed, .logrow.failed .logicon { background: var(--down); }
 .loglist, .themelist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .themelist li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }

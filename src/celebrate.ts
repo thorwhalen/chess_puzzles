@@ -56,11 +56,21 @@ let audio: AudioContext | undefined
 const ARPEGGIO = [523.25, 659.25, 783.99, 1046.5] // C5 E5 G5 C6
 const NOTE_S = 0.11
 
+/** Create and unlock the audio context; call from a tap so iOS allows later sounds. */
+export function primeAudio() {
+  try {
+    audio ??= new AudioContext()
+    audio.resume().catch(() => {})
+  } catch {
+    /* no WebAudio */
+  }
+}
+
 /** A short rising major arpeggio. */
 export function playChime() {
   try {
     audio ??= new AudioContext()
-    void audio.resume()
+    audio.resume().catch(() => {})
     const t0 = audio.currentTime + 0.02
     ARPEGGIO.forEach((freq, i) => {
       const osc = audio!.createOscillator()

@@ -47,7 +47,7 @@ interface State {
   note: string
   solveSeq: number
   // actions
-  loadNext: () => Promise<void>
+  loadNext: (opts?: { scoreSkip?: boolean }) => Promise<void>
   playerMove: (from: string, to: string) => boolean
   select: (sq: string | null) => void
   hint: () => void
@@ -144,11 +144,11 @@ export const useStore = create<State>()(
         note: '',
         solveSeq: 0,
 
-        loadNext: async () => {
+        loadNext: async ({ scoreSkip = true } = {}) => {
           clearTimeout(timer)
           const s0 = get()
           // Skipping after a mistake or hint counts as a failed attempt; a clean skip is free.
-          if (s0.puzzle && !s0.scored && s0.status !== 'loading' && (s0.mistakes > 0 || s0.hints > 0))
+          if (scoreSkip && s0.puzzle && !s0.scored && s0.status !== 'loading' && (s0.mistakes > 0 || s0.hints > 0))
             score({ solved: false })
           const mine = ++loadSeq
           set((s) => {
@@ -166,7 +166,8 @@ export const useStore = create<State>()(
             else if (pick.kind === 'theme') puzzle = await fetchNext({ ...w, theme: pick.theme, exclude }).catch(() => null)
             if (puzzle && pick.kind === 'theme' && !puzzle.themes.includes(pick.theme)) puzzle = null
             const note = puzzle ? noteFor(pick) : ''
-            puzzle ??= await fetchNext({ ...w, theme, exclude })
+            // Everything in the band may be solved already: drop the clean ids rather than fail.
+            puzzle ??= await fetchNext({ ...w, theme, exclude }).catch(() => fetchNext({ ...w, theme, exclude: recent }))
             if (mine !== loadSeq) return
             set((s) => {
               s.recent = [puzzle.id, ...s.recent].slice(0, RECENT_KEEP)
@@ -209,9 +210,12 @@ export const useStore = create<State>()(
             s.wrongSquare = null
           })
           if (res.done) {
+            const fresh = !get().scored
             score({ solved: true })
             set((s) => {
-              s.solveSeq += 1
+              if (fresh) s.solveSeq += 1 // a re-solve after a retry earns no second celebration
+              else if (s.puzzle && s.history.find((a) => a.id === s.puzzle!.id)?.outcome !== 'clean')
+                s.history = recordAttempt(s.history, { id: s.puzzle.id, rating: s.puzzle.rating, themes: s.puzzle.themes, outcome: 'helped', mistakes: s.mistakes, hints: s.hints, at: Date.now() })
               s.status = 'solved'
               s.message = 'Solved!'
             })
@@ -298,13 +302,13 @@ export const useStore = create<State>()(
         flip: () => set((s) => void (s.flipped = !s.flipped)),
         setBand: (band) => {
           set((s) => void (s.band = band))
-          void get().loadNext()
+          void get().loadNext({ scoreSkip: false })
         },
         setCelebrate: (on) => set((s) => void (s.celebrate = on)),
         setSound: (on) => set((s) => void (s.sound = on)),
         setTheme: (theme) => {
           set((s) => void (s.theme = theme))
-          void get().loadNext()
+          void get().loadNext({ scoreSkip: false })
         },
       }
     }),
