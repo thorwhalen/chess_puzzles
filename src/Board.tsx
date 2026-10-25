@@ -4,11 +4,11 @@ import { Chessboard, type PieceDropHandlerArgs, type SquareHandlerArgs } from 'r
 import { hintFor, legalTargets, solverColor, splitUci } from './engine'
 import { currentChess, useStore } from './store'
 
-const HINT_FROM = 'rgba(80, 140, 255, 0.55)'
+const HINT_FROM = 'rgba(255, 140, 0, 0.55)'
 const HINT_TO = 'rgba(80, 200, 120, 0.6)'
 const LAST = 'rgba(255, 214, 10, 0.4)'
 const WRONG = 'rgba(235, 64, 52, 0.65)'
-const SELECTED = 'rgba(20, 120, 255, 0.45)'
+const SELECTED = 'rgba(255, 140, 0, 0.55)'
 const RING = 'radial-gradient(circle, transparent 58%, rgba(120,120,120,0.8) 60%, rgba(120,120,120,0.8) 80%, transparent 82%)'
 const DOT = 'radial-gradient(circle, rgba(0,0,0,0.28) 22%, transparent 24%)'
 
@@ -74,6 +74,8 @@ export function Board() {
           allowDrawingArrows: false,
           lightSquareStyle: { backgroundColor: 'var(--sq-light)' },
           darkSquareStyle: { backgroundColor: 'var(--sq-dark)' },
+          lightSquareNotationStyle: { color: 'var(--sq-dark)', fontWeight: 700 },
+          darkSquareNotationStyle: { color: 'var(--sq-light)', fontWeight: 700 },
           boardStyle: { borderRadius: 6, touchAction: 'none' },
         }}
       />
