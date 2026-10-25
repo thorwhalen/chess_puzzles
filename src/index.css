@@ -10,8 +10,8 @@
   --sq-dark: color-mix(in srgb, var(--primary) 38%, #9d9d9d);
   color-scheme: light dark;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) { --up: #55c98a; } }
-:root[data-theme='dark'] { --up: #55c98a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) { --up: #55c98a; --sq-dark: color-mix(in srgb, var(--primary) 55%, #8d8d8d); } }
+:root[data-theme='dark'] { --up: #55c98a; --sq-dark: color-mix(in srgb, var(--primary) 55%, #8d8d8d); }
 [hidden] { display: none !important; }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--fg); }

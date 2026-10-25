@@ -62,6 +62,7 @@
   --shadow-2xl: 1px 4px 5px 0px hsl(0 0% 0% / 0.07);
   --tracking-normal: 0.5px;
 }
+/* App override: the registry's dark palette has no chroma (primary is grey), so dark mode lost the blue. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --background: oklch(0.2891 0 0);
@@ -70,8 +71,8 @@
     --card-foreground: oklch(0.8945 0 0);
     --popover: oklch(0.3211 0 0);
     --popover-foreground: oklch(0.8945 0 0);
-    --primary: oklch(0.7572 0 0);
-    --primary-foreground: oklch(0.2891 0 0);
+    --primary: oklch(0.72 0.15 260); /* override */
+    --primary-foreground: oklch(0.2 0.02 260); /* override */
     --secondary: oklch(0.4676 0 0);
     --secondary-foreground: oklch(0.8078 0 0);
     --muted: oklch(0.3904 0 0);
@@ -107,8 +108,8 @@
   --card-foreground: oklch(0.8945 0 0);
   --popover: oklch(0.3211 0 0);
   --popover-foreground: oklch(0.8945 0 0);
-  --primary: oklch(0.7572 0 0);
-  --primary-foreground: oklch(0.2891 0 0);
+  --primary: oklch(0.72 0.15 260); /* override */
+  --primary-foreground: oklch(0.2 0.02 260); /* override */
   --secondary: oklch(0.4676 0 0);
   --secondary-foreground: oklch(0.8078 0 0);
   --muted: oklch(0.3904 0 0);
