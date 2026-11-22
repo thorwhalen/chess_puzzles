@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Board } from './Board'
 import { fetchMeta } from './api'
-import { sanList, solverColor } from './engine'
+import { moveFromText, sanList, solverColor } from './engine'
 import { BANDS, ADAPTIVE } from './rating'
 import { useStore } from './store'
 import { Confetti } from './Confetti'
@@ -37,15 +37,76 @@ function MoveList() {
   )
 }
 
+/**
+ * Keyboard and screen-reader move entry: type `Nf3`, `exd5`, `O-O` or `e2e4` and press Enter. It
+ * goes through the same `playerMove` as a drag or a tap, so right, wrong and solved feel the same.
+ */
+function MoveInput() {
+  const s = useStore()
+  const [text, setText] = useState('')
+  const [error, setError] = useState('')
+  const playing = s.status === 'playing'
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    const { puzzle, played } = useStore.getState()
+    if (!puzzle || !playing || !text.trim()) return
+    const move = moveFromText(puzzle, played, text)
+    if (!move) {
+      setError(`“${text.trim()}” is not a legal move here.`)
+      return
+    }
+    setError('')
+    // The store reports a wrong move itself; a correct one advances the board. Clear either way.
+    s.playerMove(move.from, move.to)
+    setText('')
+  }
+  return (
+    <form className="moveinput" onSubmit={submit}>
+      <label className="label" htmlFor="move-text">Type a move</label>
+      <div className="moveinput-row">
+        <input
+          id="move-text"
+          value={text}
+          onChange={(e) => { setText(e.target.value); setError('') }}
+          disabled={!playing}
+          autoComplete="off"
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+          enterKeyHint="go"
+          placeholder="e.g. Nf3 or e2e4"
+          aria-describedby="move-text-error"
+          aria-invalid={error ? true : undefined}
+        />
+        <button className="btn" type="submit" disabled={!playing || !text.trim()}>Move</button>
+      </div>
+      <span id="move-text-error" className="muted small err-text" role="status" aria-live="polite">{error}</span>
+    </form>
+  )
+}
+
+/** Tab and Shift+Tab stay inside `root`: from its last control to its first, and back. */
+function trapTab(e: KeyboardEvent<HTMLElement>) {
+  if (e.key !== 'Tab') return
+  const focusable = [...e.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')]
+  if (!focusable.length) return
+  const [first, last] = [focusable[0], focusable[focusable.length - 1]]
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+}
+
 function Settings({ onClose }: { onClose: () => void }) {
   const s = useStore()
+  // Focus goes back to whatever opened the sheet (the gear button) when it closes.
+  const opener = useRef<Element | null>(document.activeElement)
+  useEffect(() => () => { if (opener.current instanceof HTMLElement && opener.current.isConnected) opener.current.focus() }, [])
   const [counts, setCounts] = useState<Record<string, number>>({})
   useEffect(() => {
     fetchMeta().then((m) => setCounts(m.themes)).catch(() => {})
   }, [])
   const themes = PICKER_THEMES.filter((t) => !Object.keys(counts).length || counts[t])
   return (
-    <div className="sheet" role="dialog" aria-modal="true" aria-label="Settings" onKeyDown={(e) => e.key === 'Escape' && onClose()}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label="Settings" onKeyDown={(e) => { if (e.key === 'Escape') onClose(); else trapTab(e) }}>
       <div className="sheet-head">
         <h2>Choose puzzles</h2>
         <button className="btn" autoFocus onClick={onClose} aria-label="Close">✕</button>
@@ -134,6 +195,7 @@ function Play() {
 
       {s.note && <p className="note small">{s.note}</p>}
       <section aria-label="Chessboard"><Board /></section>
+      <MoveInput />
       <Confetti seq={s.solveSeq} enabled={s.celebrate} sound={s.sound} />
 
       <p className={`msg${s.status === 'error' ? ' err' : ''}`} role="status" aria-live="polite" data-testid="msg">
