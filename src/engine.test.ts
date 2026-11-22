@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkMove, hintFor, sanList, solverColor, type Puzzle } from './engine'
+import { checkMove, hintFor, moveFromText, sanList, solverColor, type Puzzle } from './engine'
 
 // Real Lichess puzzle 8g4h0 (mate in 2); moves[0] is the opponent's setup move.
 const p: Puzzle = {
@@ -32,5 +32,16 @@ describe('engine', () => {
   })
   it('lists SAN', () => {
     expect(sanList(p, p.moves)).toHaveLength(4)
+  })
+  it('reads typed moves as SAN or UCI, and nothing else', () => {
+    const played = [p.moves[0]]
+    expect(moveFromText(p, played, 'e3h3')).toEqual({ from: 'e3', to: 'h3' })
+    expect(moveFromText(p, played, 'E3-H3')).toEqual({ from: 'e3', to: 'h3' })
+    expect(moveFromText(p, played, ' Rh3+ ')).toEqual({ from: 'e3', to: 'h3' })
+    expect(moveFromText(p, played, 'Rxh3')).toEqual({ from: 'e3', to: 'h3' })
+    expect(moveFromText(p, played, 'a6a1')).toBeNull() // not legal
+    expect(moveFromText(p, played, 'e4')).toBeNull() // no black pawn move to e4 (and not UCI)
+    expect(moveFromText(p, played, '')).toBeNull()
+    expect(moveFromText(p, played, 'banana')).toBeNull()
   })
 })

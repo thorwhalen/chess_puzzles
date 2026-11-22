@@ -70,6 +70,26 @@ export function checkMove(
   return { kind: 'wrong' }
 }
 
+/**
+ * Read typed move text (SAN such as `Nf3`, `exd5`, `O-O`, `e8=Q`, or UCI such as `e2e4`) as the
+ * from/to squares of a legal move in the current position, or null. Used by the keyboard entry
+ * that stands beside the pointer-only board; judging right or wrong is `checkMove`'s job.
+ */
+export function moveFromText(puzzle: Puzzle, played: readonly string[], text: string): { from: Square; to: Square } | null {
+  const raw = text.trim()
+  if (!raw) return null
+  const chess = replay(puzzle, played)
+  const uci = /^([a-h][1-8])-?([a-h][1-8])([qrbn])?$/i.exec(raw)
+  try {
+    const move = uci
+      ? chess.move({ from: uci[1].toLowerCase() as Square, to: uci[2].toLowerCase() as Square, promotion: uci[3]?.toLowerCase() })
+      : chess.move(raw)
+    return { from: move.from, to: move.to }
+  } catch {
+    return null
+  }
+}
+
 export function legalTargets(puzzle: Puzzle, played: readonly string[], from: string): string[] {
   return replay(puzzle, played)
     .moves({ square: from as Square, verbose: true })
