@@ -1,4 +1,6 @@
-// The player's log: how they are doing overall, by theme, and puzzle by puzzle.
+// The player's log: how they are doing overall, by theme, and puzzle by puzzle. The recent list
+// narrows by outcome (chips) and by theme (tap one under "By theme").
+import { useState } from 'react'
 import { effortText, summarize, themeStats, type Attempt } from './history'
 import { leaveTo, navigate } from './route'
 import { useStore } from './store'
@@ -30,8 +32,19 @@ function Row({ a }: { a: Attempt }) {
   )
 }
 
+type Outcome = Attempt['outcome']
+const OUTCOME_VIEWS: { id: Outcome | 'all'; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'failed', label: 'Not solved' },
+  { id: 'helped', label: 'With help' },
+  { id: 'clean', label: 'Right away' },
+]
+
 export function Log() {
   const history = useStore((s) => s.history)
+  const [outcome, setOutcome] = useState<Outcome | 'all'>('all')
+  const [theme, setTheme] = useState<string | null>(null)
+  const shown = history.filter((a) => (outcome === 'all' || a.outcome === outcome) && (!theme || a.themes.includes(theme)))
   const sum = summarize(history)
   const themes = themeStats(history)
     .filter((t) => t.attempts >= 2)
@@ -61,15 +74,36 @@ export function Log() {
               <h2>By theme</h2>
               <ul className="themelist">
                 {themes.map((t) => (
-                  <li key={t.theme}><span>{themeLabel(t.theme)}</span><span className="muted">{t.clean} of {t.attempts} right away</span></li>
+                  <li key={t.theme}>
+                    <button type="button" className="linklike" aria-pressed={theme === t.theme} onClick={() => setTheme(theme === t.theme ? null : t.theme)}>
+                      {themeLabel(t.theme)}
+                    </button>
+                    <span className="muted">{t.clean} of {t.attempts} right away</span>
+                  </li>
                 ))}
               </ul>
               <p className="muted small">The weakest ones show up more often in “Any theme” mode.</p>
             </section>
           )}
           <section aria-label="Recent puzzles">
-            <h2>Recent</h2>
-            <ul className="loglist">{history.slice(0, SHOWN).map((a, i) => <Row key={`${a.id}-${a.at}-${i}`} a={a} />)}</ul>
+            <h2>Recent{theme ? ` · ${themeLabel(theme)}` : ''}</h2>
+            <div className="chips" role="group" aria-label="Show">
+              {OUTCOME_VIEWS.map((v) => (
+                <button key={v.id} type="button" className={`chip${outcome === v.id ? ' on' : ''}`} aria-pressed={outcome === v.id} onClick={() => setOutcome(v.id)}>
+                  {v.label}
+                </button>
+              ))}
+              {theme && (
+                <button type="button" className="chip on" onClick={() => setTheme(null)} aria-label={`Show every theme, not only ${themeLabel(theme)}`}>
+                  {themeLabel(theme)} ×
+                </button>
+              )}
+            </div>
+            {shown.length ? (
+              <ul className="loglist">{shown.slice(0, SHOWN).map((a, i) => <Row key={`${a.id}-${a.at}-${i}`} a={a} />)}</ul>
+            ) : (
+              <p className="muted small">No puzzle here.</p>
+            )}
           </section>
         </>
       )}
